@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flight Risk Assessment Tool (FRAT)</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --border-color: #334155;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-green: #22c55e;
+            --accent-yellow: #eab308;
+            --accent-red: #ef4444;
+            --primary: #3b82f6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 16px;
+            padding-bottom: 120px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .category-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .category-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+
+        .item:last-child {
+            border-bottom: none;
+        }
+
+        .item-label {
+            font-size: 0.95rem;
+            padding-right: 12px;
+            flex-grow: 1;
+        }
+
+        .item-pts {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-right: 12px;
+            background: rgba(255,255,255,0.05);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        input[type="checkbox"] {
+            width: 24px;
+            height: 24px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        /* Fixed Score Bar at Bottom */
+        .score-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #020617;
+            border-top: 1px solid var(--border-color);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.5);
+            z-index: 100;
+        }
+
+        .score-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .score-val {
+            font-size: 1.8rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .score-status {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .reset-btn {
+            background: #334155;
+            color: #fff;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .status-low { color: var(--accent-green); }
+        .status-med { color: var(--accent-yellow); }
+        .status-high { color: var(--accent-red); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Flight Risk Assessment Tool</h1>
+        <div class="subtitle">Corporate Aviation Flight Assessment</div>
+    </header>
+
+    <div id="frat-form"></div>
+
+    <div class="score-bar">
+        <div class="score-info">
+            <div class="score-val" id="total-score">0</div>
+            <div class="score-status status-low" id="score-status">LOW RISK - OK TO FLY</div>
+        </div>
+        <button class="reset-btn" onclick="resetForm()">Reset</button>
+    </div>
+
+    <script>
+        const fratData = [
+            {
+                category: "1. Flight Crew / Human Factors",
+                items: [
+                    { id: "c1", label: "Duty day > 10 hours scheduled", pts: 3 },
+                    { id: "c2", label: "Less than 10 hours rest prior to duty", pts: 5 },
+                    { id: "c3", label: "Early show (< 0600) or late arrival (> 2200)", pts: 2 },
+                    { id: "c4", label: "Under-qualified right seater", pts: 4 },
+                    { id: "c5", label: "Less than 10 hours in type over the last 30 days", pts: 4 },
+                    { id: "c6", label: "Self-assessed fatigue level > 3 out of 5", pts: 4 },
+                    { id: "c7", label: "Recent illness, life stress, or personal distraction", pts: 3 }
+                ]
+            },
+            {
+                category: "2. Environment & Weather",
+                items: [
+                    { id: "w1", label: "Ceiling < 1,000 ft or Vis < 3 SM at destination/alternate", pts: 3 },
+                    { id: "w2", label: "Crosswind > 15 kts (or > 70% max demonstrated)", pts: 4 },
+                    { id: "w3", label: "Gust factor > 10 kts", pts: 2 },
+                    { id: "w4", label: "Contaminated runway (snow, ice, standing water)", pts: 5 },
+                    { id: "w5", label: "Braking action reported Medium or Poor", pts: 6 },
+                    { id: "w6", label: "Convective activity / thunderstorms along route", pts: 4 },
+                    { id: "w7", label: "Known moderate-to-severe icing forecast", pts: 5 }
+                ]
+            },
+            {
+                category: "3. Airport & Mission Profile",
+                items: [
+                    { id: "m1", label: "Runway length within 1,000 ft of min required distance", pts: 5 },
+                    { id: "m2", label: "Unfamiliar airport / first time operating into field", pts: 3 },
+                    { id: "m3", label: "Passenger-induced pressure (VIP, tight schedule)", pts: 4 },
+                    { id: "m4", label: "Multiple intermediate legs (> 3 legs in single duty day)", pts: 3 },
+                    { id: "m5", label: "International flight / unfamiliar entry procedures", pts: 3 }
+                ]
+            }
+        ];
+
+        function renderForm() {
+            const container = document.getElementById("frat-form");
+            container.innerHTML = "";
+
+            fratData.forEach(cat => {
+                const card = document.createElement("div");
+                card.className = "category-card";
+
+                const title = document.createElement("div");
+                title.className = "category-title";
+                title.innerText = cat.category;
+                card.appendChild(title);
+
+                cat.items.forEach(item => {
+                    const row = document.createElement("label");
+                    row.className = "item";
+                    row.innerHTML = `
+                        <span class="item-label">${item.label}</span>
+                        <span class="item-pts">+${item.pts}</span>
+                        <input type="checkbox" id="${item.id}" data-pts="${item.pts}" onchange="calculateScore()">
+                    `;
+                    card.appendChild(row);
+                });
+
+                container.appendChild(card);
+            });
+        }
+
+        function calculateScore() {
+            let score = 0;
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+            checkboxes.forEach(cb => {
+                score += parseInt(cb.getAttribute('data-pts'));
+            });
+
+            const scoreDisplay = document.getElementById("total-score");
+            const statusDisplay = document.getElementById("score-status");
+
+            scoreDisplay.innerText = score;
+
+            if (score <= 12) {
+                statusDisplay.innerText = "LOW RISK - OK TO FLY";
+                statusDisplay.className = "score-status status-low";
+            } else if (score <= 22) {
+                statusDisplay.innerText = "MODERATE RISK - MITIGATION REQUIRED";
+                statusDisplay.className = "score-status status-med";
+            } else {
+                statusDisplay.innerText = "HIGH RISK - MANAGEMENT APPROVAL REQ.";
+                statusDisplay.className = "score-status status-high";
+            }
+        }
+
+        function resetForm() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = false);
+            calculateScore();
+        }
+
+        renderForm();
+    </script>
+</body>
+</html>
